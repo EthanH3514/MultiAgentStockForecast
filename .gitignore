@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Vue.js / Node
+.DS_Store
+node_modules/
+/dist
+/build
+
+# local env files
+.env.local
+.env.*.local
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor directories and files
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Project specific
+stock_prediction/data
+stock_prediction/temp_data
+stock_prediction/results
+stock_prediction/traditional_model/historic_model
+stock_prediction/agent/suggestions
+.env
+config.ini
+secrets.json
+api_config.py
+credentials.json
+token.json
