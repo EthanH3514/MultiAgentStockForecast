@@ -16,6 +16,14 @@
             <el-radio label="traditional">传统模型预测</el-radio>
           </el-radio-group>
         </el-form-item>
+        
+        <el-form-item label="模型算法" v-show="form.predictionMethod === 'traditional'">
+          <el-radio-group v-model="form.modelType">
+            <el-radio label="LSTM">LSTM</el-radio>
+            <el-radio label="SVM">SVM</el-radio>
+            <!-- <el-radio label="Transformer">Transformer</el-radio> -->
+          </el-radio-group>
+        </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="submitForm" :loading="loading">开始预测</el-button>
           <el-button type="success" @click="downloadAnalysis" :disabled="!predictionResult || form.predictionMethod !== 'agent'">下载分析报告</el-button>
@@ -40,7 +48,7 @@
             <h2>分析进度</h2>
           </div>
         </template>
-        <AnalysisProgress ref="analysisProgress" />
+        <AnalysisProgress ref="analysisProgress" :enabled="wsEnabled" />
       </el-card>
       
       <el-card v-if="predictionResult" class="result-card">
@@ -51,66 +59,10 @@
         </template>
         
         <!-- 智能代理预测结果 -->
-        <div v-if="form.predictionMethod === 'agent'" class="agent-result">
-          <el-row :gutter="20">
-            <el-col :span="24">
-              <div class="prediction-summary">
-                <h3>预测摘要</h3>
-                <div class="prediction-date">
-                  <span class="date-label">预测日期：</span>
-                  <span class="date">{{ predictionResult.target_date }}</span>
-                </div>
-                <div class="prediction-price">
-                  <span class="price-label">预测价格：</span>
-                  <span class="price">{{ predictionResult.predicted_price }}</span>
-                </div>
-                <div class="prediction-direction">
-                  <span class="direction-label">预测方向：</span>
-                  <span class="direction" :class="{'up': predictionResult.direction == 1, 'down': predictionResult.direction == -1}">
-                    {{ predictionResult.direction === 1 ? '看涨 ↑' : '看跌 ↓' }}
-                  </span>
-                </div>
-                <div class="prediction-change" v-if="predictionResult.change_rate !== undefined">
-                  <span class="change-label">预测涨跌幅：</span>
-                  <span class="change" :class="{'up': predictionResult.direction == 1, 'down': predictionResult.direction == -1}">
-                    {{ predictionResult.change_rate }}%
-                  </span>
-                </div>
-              </div>
-            </el-col>
-          </el-row>
-        </div>
+        <AgentPrediction v-if="form.predictionMethod === 'agent'" :prediction-result="predictionResult" />
         
         <!-- 传统模型预测结果 -->
-        <div v-else class="traditional-result">
-          <el-row>
-            <el-col :span="24">
-              <div class="prediction-summary">
-                <h3>预测摘要</h3>
-                <div class="prediction-date">
-                  <span class="date-label">预测日期：</span>
-                  <span class="date">{{ predictionResult.prediction_date }}</span>
-                </div>
-                <div class="prediction-price">
-                  <span class="price-label">预测价格：</span>
-                  <span class="price">{{ predictionResult.predicted_price }}</span>
-                </div>
-                <div class="prediction-direction">
-                  <span class="direction-label">预测方向：</span>
-                  <span class="direction" :class="{'up': predictionResult.direction == 1, 'down': predictionResult.direction == -1}">
-                    {{ predictionResult.direction === 1 ? '看涨 ↑' : '看跌 ↓' }}
-                  </span>
-                </div>
-                <div class="prediction-change" v-if="predictionResult.change_rate !== undefined">
-                  <span class="change-label">预测涨跌幅：</span>
-                  <span class="change" :class="{'up': predictionResult.direction == 1, 'down': predictionResult.direction == -1}">
-                    {{ predictionResult.change_rate }}%
-                  </span>
-                </div>
-              </div>
-            </el-col>
-          </el-row>
-        </div>
+        <TraditionalPrediction v-else :prediction-result="predictionResult" :model-type="form.modelType" />
       </el-card>
     </div>
   </div>
@@ -119,6 +71,8 @@
 <script>
 import axios from 'axios';
 import AnalysisProgress from '@/components/AnalysisProgress.vue';
+import AgentPrediction from '@/components/AgentPrediction.vue';
+import TraditionalPrediction from '@/components/TraditionalPrediction.vue';
 import JSZip from 'jszip';
 import * as echarts from 'echarts';
 
@@ -126,12 +80,15 @@ export default {
   name: 'StockPrediction',
   components: {
     AnalysisProgress,
+    AgentPrediction,
+    TraditionalPrediction,
   },
   data() {
     return {
       form: {
         stockCode: '',
         predictionMethod: 'agent',
+        modelType: 'LSTM',
       },
       loading: false,
       predictionResult: null,
@@ -139,6 +96,7 @@ export default {
       targetDate: '',
       historicalData: [],
       stockChart: null,
+      wsEnabled: false,
     };
   },
   methods: {
@@ -159,14 +117,18 @@ export default {
         await this.fetchHistoricalData();
         
         let endpoint = 'http://localhost:5000/api/predict/traditional';
-        if (this.form.predictionMethod === 'agent') {
-          endpoint = 'http://localhost:5000/api/predict/agent';
-        }
-        
-        const response = await axios.post(endpoint, {
+        let requestData = {
           stock_code: this.form.stockCode,
           api_key: localStorage.getItem('arkApiKey'),
-        });
+        };
+
+        if (this.form.predictionMethod === 'agent') {
+          endpoint = 'http://localhost:5000/api/predict/agent';
+        } else {
+          requestData.method = this.form.modelType;
+        }
+        
+        const response = await axios.post(endpoint, requestData);
         
         if (response.data.success) {
           this.predictionResult = response.data.data;
@@ -331,8 +293,20 @@ export default {
       }
     },
   },
+  watch: {
+    'form.predictionMethod': {
+      handler(newVal) {
+        this.wsEnabled = newVal === 'agent';
+        if (!this.wsEnabled && this.$refs.analysisProgress) {
+          this.$refs.analysisProgress.resetStatus();
+        }
+      },
+      immediate: true,
+    },
+  },
   mounted() {
     window.addEventListener('resize', this.handleResize);
+    this.wsEnabled = this.form.predictionMethod === 'agent';
   },
   beforeUnmount() {
     window.removeEventListener('resize', this.handleResize);
@@ -340,6 +314,7 @@ export default {
       this.stockChart.dispose();
       this.stockChart = null;
     }
+    this.wsEnabled = false;
   },
 };
 </script>
@@ -373,39 +348,6 @@ export default {
   margin-top: 30px;
 }
 
-.prediction-summary {
-  background-color: #f8f9fa;
-  padding: 15px;
-  border-radius: 4px;
-  margin-bottom: 20px;
-}
-
-.prediction-summary h3 {
-  margin-bottom: 15px;
-  color: #303133;
-}
-
-.direction-label, .price-label, .date-label, .change-label {
-  font-weight: bold;
-  margin-right: 10px;
-}
-
-.direction.up, .change.up {
-  color: #f56c6c !important;
-  font-weight: bold;
-}
-
-.direction.down, .change.down {
-  color: #67c23a !important;
-  font-weight: bold;
-}
-
-.price {
-  font-size: 18px;
-  font-weight: bold;
-  color: #409EFF;
-}
-
 .reasoning-container {
   margin-top: 20px;
 }
@@ -427,10 +369,5 @@ export default {
   white-space: pre-wrap;
   font-family: 'Courier New', Courier, monospace;
   line-height: 1.5;
-}
-
-.prediction-date, .prediction-direction, .prediction-price, .prediction-change {
-  margin-bottom: 10px;
-  font-size: 16px;
 }
 </style>

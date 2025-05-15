@@ -17,6 +17,12 @@ import { io } from 'socket.io-client';
 
 export default {
   name: 'AnalysisProgress',
+  props: {
+    enabled: {
+      type: Boolean,
+      default: false,
+    },
+  },
   data() {
     return {
       socket: null,
@@ -90,12 +96,28 @@ export default {
       return this.analysisResults[agentType] || '';
     },
   },
+  watch: {
+    enabled: {
+      handler(newVal) {
+        if (newVal) {
+          this.setupWebSocket();
+          console.log('建立连接');
+        } else if (this.socket) {
+          this.socket.disconnect();
+          console.log('关闭连接');
+          this.socket = null;
+        }
+      },
+      immediate: true,
+    },
+  },
   mounted() {
-    this.setupWebSocket();
   },
   beforeUnmount() {
     if (this.socket) {
       this.socket.disconnect();
+      console.log('关闭连接');
+      this.socket = null;
     }
   },
 };

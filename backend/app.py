@@ -11,7 +11,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # 导入预测模块
 from stock_prediction.predict_by_agent import predict_by_agent, get_format_predict_result_by_agent, get_format_result_from_content
-from stock_prediction.traditional_model.predict import predict_next_day
 from stock_prediction.fetch_stock_data import fetch_stock_data
 
 app = Flask(__name__)
@@ -115,34 +114,79 @@ def get_project_root():
 def predict_stock_traditional():
     """使用传统模型预测股票"""
     data = request.json
+    method = data.get('method')
     stock_code = data.get('stock_code')
     
     if not stock_code:
         return jsonify({"error": "请提供股票代码"}), 400
     
+    if method not in ['LSTM', 'SVM', 'Transformer']:
+        return jsonify({"error": "无效的预测方法"}), 400
+
     try:
         # 获取项目根目录
         root_dir = get_project_root()
         
         # 构建数据路径
         data_path = os.path.join(root_dir, "stock_prediction", "data", stock_code, "股票日线数据.csv")
-        model_path = os.path.join(root_dir, "stock_prediction", "traditional_model", "best_model.h5")
-        scaler_path = os.path.join(root_dir, "stock_prediction", "traditional_model", "scaler.npy")
-        
-        # 预测下一天股价
-        result = predict_next_day(model_path, data_path, scaler_path)
-        
+        if method == 'LSTM':
+            model_path = os.path.join(root_dir, "stock_prediction", "traditional_model", method, "best_model.h5")
+            scaler_path = os.path.join(root_dir, "stock_prediction", "traditional_model", method, "scaler.npy")
+            
+            from stock_prediction.traditional_model.LSTM.predict import predict_next_day
+            
+            # 预测下一天股价
+            result = predict_next_day(model_path, data_path, scaler_path)
+        elif method == 'SVM':
+            model_path = os.path.join(root_dir, "stock_prediction", "traditional_model", method, "best_model.pkl")
+            scaler_path = os.path.join(root_dir, "stock_prediction", "traditional_model", method, "scaler.npy")
+
+            from stock_prediction.traditional_model.SVM.predict import predict_next_day
+
+            # 预测下一天股价
+            result = predict_next_day(model_path, data_path, scaler_path)
+        elif method == 'Transformer':
+            model_path = os.path.join(root_dir, "stock_prediction", "traditional_model", method, "best_model.pt")
+            scaler_path = os.path.join(root_dir, "stock_prediction", "traditional_model", method, "scaler.pt")
+
+            from stock_prediction.traditional_model.transformer.predict import predict_next_day
+
+            # 预测下一天股价
+            result = predict_next_day(model_path, data_path, scaler_path)
+
         # 提取预测结果
         prediction_date = result['日期'].iloc[0].strftime("%Y-%m-%d")
-        predicted_price = float(result['预测收盘价'].iloc[0])
-
+        predicted_price = float(result['预测收盘价'].iloc[0]) if '预测收盘价' in result else float(result['当前价格'].iloc[0])
+        
+        response_data = {
+            "stock_code": stock_code,
+            "prediction_date": prediction_date,
+            "predicted_price": predicted_price,
+        }
+        
+        # 根据不同模型添加特定的返回数据
+        if method == 'LSTM':
+            response_data.update({
+                "predicted_price": float(result['预测收盘价'].iloc[0]),
+                "direction": int(result['涨跌方向'].iloc[0]),
+                "change_rate": float(result['涨跌幅'].iloc[0])
+            })
+        elif method == 'SVM':
+            response_data.update({
+                "direction": int(result['涨跌方向'].iloc[0]),
+                "confidence": float(result['预测概率'].iloc[0]),
+                "current_price": float(result['当前价格'].iloc[0])
+            })
+        elif method == 'Transformer':
+            response_data.update({
+                "predicted_price": float(result['predicted_price']),
+                "direction": int(result['direction']),
+                "change_rate": float(result['change_rate'])
+            })
+        
         return jsonify({
             "success": True,
-            "data": {
-                "stock_code": stock_code,
-                "prediction_date": prediction_date,
-                "predicted_price": predicted_price,
-            }
+            "data": response_data
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
