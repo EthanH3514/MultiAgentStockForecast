@@ -6,11 +6,11 @@
 
 智能代理预测模式会综合最近20天的股价数据、个股新闻、公司基本面、宏观经济四个方向的数据进行分析，给出下一日股价的涨跌预测。同时使用WebSocket在前端实时显示分析过程，并支持保存。
 
-![代码流程图.drawio](.\pictures\代码流程图.drawio.png)
+![代码流程图.drawio](https://github.com/EthanH3514/MultiAgentStockForecast/blob/master/pictures/%E4%BB%A3%E7%A0%81%E6%B5%81%E7%A8%8B%E5%9B%BE.drawio.png?raw=true)
 
 ### 系统用例图
 
-![用例图](.\pictures\用例图.png)
+![用例图](https://github.com/EthanH3514/MultiAgentStockForecast/blob/master/pictures/%E7%94%A8%E4%BE%8B%E5%9B%BE.png?raw=true)
 
 ## 系统结构
 
@@ -33,7 +33,7 @@
 
 以下是智能代理模型在小商品城（SH600415）2025年3月1日到2025年3月31日的股价上的实验结果，涨跌预测准确率有57.1%。
 
-![智能代理实验结果](.\pictures\智能代理实验结果.png)
+![智能代理实验结果](https://github.com/EthanH3514/MultiAgentStockForecast/blob/master/pictures/%E6%99%BA%E8%83%BD%E4%BB%A3%E7%90%86%E5%AE%9E%E9%AA%8C%E7%BB%93%E6%9E%9C.png?raw=true)
 
 
 
