@@ -31,6 +31,8 @@
 
 ## 实验结果
 
+### 智能代理
+
 以下是智能代理模型在小商品城（SH600415）2025年3月1日到2025年3月31日的股价上的实验结果，涨跌预测准确率有57.1%。
 
 ![智能代理实验结果](https://github.com/EthanH3514/MultiAgentStockForecast/blob/master/pictures/%E6%99%BA%E8%83%BD%E4%BB%A3%E7%90%86%E5%AE%9E%E9%AA%8C%E7%BB%93%E6%9E%9C.png?raw=true)
@@ -39,11 +41,25 @@
 
 经过多次实验发现，预测波动率较大，大概率是因为时间跨度太小。爬取新闻数据使用的是Akshare的免费接口，只能获取最近100条个股新闻，时间上大约覆盖最近一个月。扩展新闻的话需要手写爬虫，不太想搞。
 
+### 传统模型
+
+支持LSTM和SVM两种传统模型，均是使用前20天的纯股价数据及衍生的技术指标做涨跌预测。LSTM通过预测股价来预测涨跌，SVM直接预测涨跌。
+
+下面是LSTM模型在小商品城（SH600415）2016年1月1日以来的股价数据上的实验结果图。
+
+![LSTM实验结果图](https://github.com/EthanH3514/MultiAgentStockForecast/blob/master/pictures/prediction_comparison.png?raw=true)
+
+
+
+下面是LSTM模型在上面的数据集上的涨跌预测混淆矩阵及准确率随时间的变化图。
+
+![LSTM涨跌准确率](https://github.com/EthanH3514/MultiAgentStockForecast/blob/master/pictures/direction_accuracy.png?raw=true)
+
 ## 功能特点
 
 1. 支持两种预测方法：
    - 智能代理预测：综合分析市场、新闻、基本面和宏观经济数据
-   - 传统模型预测：使用机器学习模型预测股票价格
+   - 传统模型预测：使用机器学习及深度学习模型预测股票价格
 
 2. 可视化展示预测结果和分析过程
 
@@ -88,6 +104,7 @@ npm run serve
 ## 使用方法
 
 1. 在输入框中输入股票代码（如：600415）
+1. 在“系统设置”页面输入火山引擎的DeepSeek-R1 API并保存
 2. 选择预测方法（智能代理预测或传统模型预测）
 3. 点击"开始预测"按钮
 4. 查看预测结果和分析过程
